@@ -15,8 +15,8 @@ Supabase 환경 변수가 없으면 홈 화면은 데모 데이터로 실행됩�
 ## Supabase 설정
 
 1. Supabase 프로젝트를 만들고 `supabase/migrations/202607230001_initial_schema.sql`을 적용합니다.
-2. Authentication에서 Email과 Google provider를 활성화합니다.
-3. Google OAuth의 callback URL에 `https://<project-ref>.supabase.co/auth/v1/callback`을 등록합니다.
+2. Authentication에서 Email provider를 내부 인증용으로 활성화하고 `Confirm email`은 끕니다.
+3. 화면에서는 이메일을 받지 않습니다. 사용자는 아이디와 비밀번호만 입력하며 서버가 Supabase Auth용 가상 주소를 자동 생성합니다.
 4. Site URL과 Redirect URLs에 로컬 및 Vercel 주소의 `/auth/callback`을 등록합니다.
 5. `.env.local`에 Project URL과 anon key를 입력합니다. `SUPABASE_SERVICE_ROLE_KEY`는 향후 관리 작업용이며 현재 앱 런타임에서는 사용하지 않습니다.
 
