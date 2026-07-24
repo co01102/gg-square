@@ -8,7 +8,7 @@ import { updateProfile } from "@/app/actions/profile";
 
 type Profile = { username?: string; bio?: string; avatar_url?: string | null } | null;
 
-export function ProfileEditor({ user, profile }: { user: { id: string; email: string } | null; profile: Profile }) {
+export function ProfileEditor({ user, profile }: { user: { id: string } | null; profile: Profile }) {
   const [state, action, pending] = useActionState(updateProfile, {});
   const [preview, setPreview] = useState(profile?.avatar_url || "");
   const file = useRef<HTMLInputElement>(null);
@@ -32,7 +32,7 @@ export function ProfileEditor({ user, profile }: { user: { id: string; email: st
           <input ref={file} hidden name="avatar" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
             const selected = e.target.files?.[0]; if (selected) setPreview(URL.createObjectURL(selected));
           }} />
-          <div><h1>{profile?.username || "새 게이머"}</h1><p>{user.email}</p></div>
+          <div><h1>{profile?.username || "새 게이머"}</h1><p>@{profile?.username || "gamer"}</p></div>
         </div>
         <div className="profile-form">
           <h2>프로필 편집</h2>
