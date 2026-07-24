@@ -1,13 +1,17 @@
 import { z } from "zod";
 
+const usernameSchema = z.string()
+  .trim()
+  .min(2, "아이디는 2자 이상이어야 합니다.")
+  .max(20, "아이디는 20자까지 입력할 수 있습니다.")
+  .regex(/^[가-힣a-zA-Z0-9_]+$/, "아이디에는 한글, 영문, 숫자, 밑줄만 사용할 수 있습니다.");
+
 export const authSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8)
+  username: usernameSchema,
+  password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다.")
 });
 
-export const signupSchema = authSchema.extend({
-  username: z.string().trim().min(2, "닉네임은 2자 이상이어야 합니다.").max(20, "닉네임은 20자까지 입력할 수 있습니다.").regex(/^[가-힣a-zA-Z0-9_]+$/, "닉네임에는 한글, 영문, 숫자, 밑줄만 사용할 수 있습니다.")
-});
+export const signupSchema = authSchema;
 
 export const postSchema = z.object({
   body: z.string().trim().min(1, "내용을 입력해 주세요.").max(2000, "게시물은 2,000자까지 작성할 수 있습니다."),
@@ -15,7 +19,7 @@ export const postSchema = z.object({
 });
 
 export const profileSchema = z.object({
-  username: signupSchema.shape.username,
+  username: usernameSchema,
   bio: z.string().trim().max(160, "소개는 160자까지 입력할 수 있습니다.")
 });
 
