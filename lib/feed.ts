@@ -51,7 +51,9 @@ export async function getFeedPage(options: FeedOptions) {
   const { data: { user } } = await supabase.auth.getUser();
   let query = supabase
     .from("posts")
-    .select("*, profiles(username, avatar_url), games(*), post_images(*), likes(user_id), comments(id)")
+    .select(
+      "*, profiles!posts_author_id_fkey(username, avatar_url), games!posts_game_id_fkey(*), post_images(*), likes(user_id), comments(id)"
+    )
     .eq("is_published", true)
     .order("created_at", { ascending: false })
     .limit(options.sort === "popular" ? 50 : 10);
