@@ -4,13 +4,13 @@ import { postSchema, signupSchema, validateImages } from "@/lib/validation";
 describe("community validation", () => {
   it("accepts a valid Korean nickname", () => {
     expect(signupSchema.safeParse({
-      email: "player@example.com", password: "password123", username: "게임고수_7"
+      password: "password123", username: "게임고수_7"
     }).success).toBe(true);
   });
 
   it("rejects invalid and short nicknames", () => {
     expect(signupSchema.safeParse({
-      email: "player@example.com", password: "password123", username: "!"
+      password: "password123", username: "!"
     }).success).toBe(false);
   });
 
