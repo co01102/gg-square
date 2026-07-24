@@ -12,8 +12,18 @@ import { createPost } from "@/app/actions/posts";
 import { signIn, signUp } from "@/app/actions/auth";
 import type { FeedPost, Game, PostComment, ViewerProfile } from "@/lib/types";
 
-type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; viewer: ViewerProfile | null; demo: boolean };
+type Props = { initialPosts: FeedPost[]; initialPopularPosts: FeedPost[]; initialCursor: string | null; games: Game[]; viewer: ViewerProfile | null; demo: boolean };
 type AuthView = "login" | "signup";
+
+function rankPopularPosts(posts: FeedPost[]) {
+  return [...new Map(posts.map((post) => [post.id, post])).values()]
+    .sort((a, b) =>
+      b.likeCount - a.likeCount
+      || b.commentCount - a.commentCount
+      || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .slice(0, 4);
+}
 
 function timeAgo(date: string) {
   const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
@@ -33,8 +43,9 @@ function Avatar({ name, url, size = 42 }: { name: string; url?: string | null; s
   );
 }
 
-export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo }: Props) {
+export function CommunityApp({ initialPosts, initialPopularPosts, initialCursor, games, viewer, demo }: Props) {
   const [posts, setPosts] = useState(initialPosts);
+  const [popularPosts, setPopularPosts] = useState(initialPopularPosts);
   const [activeGame, setActiveGame] = useState("all");
   const [sort, setSort] = useState<"latest" | "popular">("latest");
   const [authOpen, setAuthOpen] = useState(false);
@@ -49,6 +60,7 @@ export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo 
         const response = await fetch(`/api/feed?game=${game}&sort=${nextSort}`);
         const data = await response.json();
         setPosts(data.posts || []);
+        if (nextSort === "popular") setPopularPosts(rankPopularPosts(data.posts || []));
         setNextCursor(data.nextCursor || null);
       } catch {
         toast.error("피드를 불러오지 못했어요.");
@@ -90,9 +102,16 @@ export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo 
   }
 
   function toggleLike(id: string) {
+    const selected = posts.find((post) => post.id === id);
+    const updatedSelected = selected
+      ? { ...selected, liked: !selected.liked, likeCount: selected.likeCount + (selected.liked ? -1 : 1) }
+      : null;
     setPosts((items) => items.map((post) => post.id === id
       ? { ...post, liked: !post.liked, likeCount: post.likeCount + (post.liked ? -1 : 1) }
       : post));
+    if (updatedSelected) {
+      setPopularPosts((items) => rankPopularPosts([...items.filter((post) => post.id !== id), updatedSelected]));
+    }
     if (demo) toast.success("데모 모드에서 좋아요를 반영했어요.");
     else fetch(`/api/posts/${id}/like`, { method: "POST" }).then(async (res) => {
       if (res.status === 401) { setAuthOpen(true); throw new Error("로그인이 필요합니다."); }
@@ -113,6 +132,7 @@ export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo 
       return;
     }
     setPosts((items) => items.filter((post) => post.id !== id));
+    setPopularPosts((items) => items.filter((post) => post.id !== id));
     toast.success("게시물을 삭제했습니다.");
   }
 
@@ -224,10 +244,16 @@ export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo 
 
         <aside className="sidebar right-sidebar">
           <section className="side-panel">
-            <div className="panel-title"><h3><Flame size={17} /> 지금 뜨는 이야기</h3><span>24시간</span></div>
-            {["신규 시즌 티어 배치 후기", "레이드 첫 클리어 인증", "이번 패치 핵심 변경점", "주말 같이 게임할 파티원"].map((title, index) => (
-              <a className="trend" href="#popular" key={title}><b>0{index + 1}</b><span><strong>{title}</strong><small>{[342, 287, 193, 151][index]}명이 이야기 중</small></span></a>
-            ))}
+            <div className="panel-title"><h3><Flame size={17} /> 인기 게시물</h3><span>최근 7일</span></div>
+            {popularPosts.length > 0 ? popularPosts.map((post, index) => (
+              <a className="trend" href="#popular" key={post.id} onClick={() => selectSort("popular")}>
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <span>
+                  <strong>{post.body}</strong>
+                  <small>좋아요 {post.likeCount} · 댓글 {post.commentCount}</small>
+                </span>
+              </a>
+            )) : <p className="trend-empty">아직 인기 게시물이 없어요.</p>}
           </section>
           <section className="side-panel compact">
             <div className="panel-title"><h3>추천 게이머</h3><button>더보기</button></div>

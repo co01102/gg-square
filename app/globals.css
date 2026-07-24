@@ -150,6 +150,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .trend strong, .trend small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .trend strong { font-size: 11px; }
 .trend small { color: #697181; font-size: 9px; margin-top: 3px; }
+.trend-empty { margin: 4px 0 0; padding: 18px 4px; color: #697181; font-size: 10px; text-align: center; }
 .suggested { display:flex; align-items:center; gap:8px; padding:8px 0; }
 .suggested > span { flex:1; min-width:0; }
 .suggested strong, .suggested small { display:block; }
