@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { createPost } from "@/app/actions/posts";
-import { resetPassword, signIn, signInWithGoogle, signUp } from "@/app/actions/auth";
+import { signIn, signUp } from "@/app/actions/auth";
 import type { FeedPost, Game } from "@/lib/types";
 
 type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; demo: boolean };
-type AuthView = "login" | "signup" | "forgot";
+type AuthView = "login" | "signup";
 
 function timeAgo(date: string) {
   const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
@@ -263,26 +263,23 @@ function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () 
 
 function AuthModal({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<AuthView>("login");
-  const action = view === "login" ? signIn : view === "signup" ? signUp : resetPassword;
+  const action = view === "login" ? signIn : signUp;
   const [state, formAction, pending] = useActionState(action, {});
-  const title = view === "login" ? "다시 만나 반가워요!" : view === "signup" ? "GG Square에 합류하세요" : "비밀번호를 재설정할까요?";
+  const title = view === "login" ? "다시 만나 반가워요!" : "GG Square에 합류하세요";
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal auth-modal" role="dialog" aria-modal="true" aria-label="로그인">
         <button className="modal-close" onClick={onClose} aria-label="닫기"><X size={20} /></button>
         <div className="modal-logo"><Gamepad2 size={29} /></div>
         <h2>{title}</h2>
-        <p>{view === "login" ? "로그인하고 게이머들과 이야기를 나눠보세요." : view === "signup" ? "계정을 만들고 나만의 게임 이야기를 시작하세요." : "가입한 이메일로 재설정 링크를 보내드려요."}</p>
-        {view !== "forgot" && <><form action={signInWithGoogle}><button className="social-login" type="submit"><b>G</b> Google로 계속하기</button></form><div className="or"><span>또는 이메일로</span></div></>}
+        <p>{view === "login" ? "아이디와 비밀번호로 로그인해 게이머들과 이야기를 나눠보세요." : "이메일 없이 아이디와 비밀번호만으로 바로 시작할 수 있어요."}</p>
         <form action={formAction} className="auth-form">
-          {view === "signup" && <label>닉네임<input name="username" required minLength={2} maxLength={20} placeholder="게임에서 사용할 이름" /></label>}
-          <label>이메일<input name="email" type="email" required placeholder="player@example.com" /></label>
-          {view !== "forgot" && <label>비밀번호<input name="password" type="password" required minLength={8} placeholder="8자 이상 입력" /></label>}
+          <label>아이디<input name="username" required minLength={2} maxLength={20} autoComplete="username" placeholder="한글, 영문, 숫자, 밑줄 사용" /></label>
+          <label>비밀번호<input name="password" type="password" required minLength={8} autoComplete={view === "signup" ? "new-password" : "current-password"} placeholder="8자 이상 입력" /></label>
           {state.error && <p className="form-error">{state.error}</p>}
           {state.success && <p className="form-success">{state.success}</p>}
-          <button className="button primary full" disabled={pending}>{pending ? "처리 중..." : view === "login" ? "로그인" : view === "signup" ? "계정 만들기" : "재설정 메일 보내기"}</button>
+          <button className="button primary full" disabled={pending}>{pending ? "처리 중..." : view === "login" ? "로그인" : "계정 만들기"}</button>
         </form>
-        {view === "login" && <button className="auth-switch forgot-link" onClick={() => setView("forgot")}>비밀번호를 잊으셨나요?</button>}
         <button className="auth-switch" onClick={() => setView(view === "login" ? "signup" : "login")}>{view === "login" ? "아직 계정이 없나요? 가입하기" : "로그인으로 돌아가기"}</button>
       </div>
     </div>
