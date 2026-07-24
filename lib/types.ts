@@ -17,3 +17,14 @@ export type FeedPost = {
   commentCount: number;
   liked: boolean;
 };
+
+export type PostComment = {
+  id: string;
+  body: string;
+  createdAt: string;
+  isOwn: boolean;
+  author: {
+    username: string;
+    avatarUrl: string | null;
+  };
+};

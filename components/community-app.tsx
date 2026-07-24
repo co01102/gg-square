@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { createPost } from "@/app/actions/posts";
 import { signIn, signUp } from "@/app/actions/auth";
-import type { FeedPost, Game } from "@/lib/types";
+import type { FeedPost, Game, PostComment } from "@/lib/types";
 
 type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; demo: boolean };
 type AuthView = "login" | "signup";
@@ -225,17 +225,46 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
 }
 
 function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () => void; demo: boolean; onLogin: () => void }) {
-  const [commenting, setCommenting] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
   const [comment, setComment] = useState("");
+
+  async function loadComments() {
+    setCommentsLoading(true);
+    try {
+      const response = await fetch(`/api/posts/${post.id}/comments`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "댓글을 불러오지 못했습니다.");
+      const nextComments = (data.comments || []) as PostComment[];
+      setComments(nextComments);
+      setCommentCount(nextComments.length);
+      setCommentsLoaded(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "댓글을 불러오지 못했습니다.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  function toggleComments() {
+    const nextOpen = !commentsOpen;
+    setCommentsOpen(nextOpen);
+    if (nextOpen && !commentsLoaded) void loadComments();
+  }
+
   async function submitComment(event: React.FormEvent) {
     event.preventDefault();
     if (!comment.trim()) return;
-    if (demo) { toast.success("데모 댓글이 등록됐어요."); setComment(""); setCommenting(false); return; }
+    if (demo) { toast.success("데모 댓글이 등록됐어요."); setComment(""); return; }
     const response = await fetch(`/api/posts/${post.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: comment }) });
     if (response.status === 401) { onLogin(); return; }
     if (!response.ok) return toast.error("댓글을 등록하지 못했어요.");
     toast.success("댓글을 등록했어요.");
-    setComment(""); setCommenting(false);
+    setComment("");
+    await loadComments();
   }
   return (
     <article className="post-card">
@@ -252,11 +281,36 @@ function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () 
       )}
       <div className="post-actions">
         <button className={post.liked ? "liked" : ""} onClick={onLike}><Heart size={20} fill={post.liked ? "currentColor" : "none"} /><span>{post.likeCount}</span></button>
-        <button onClick={() => setCommenting((value) => !value)}><MessageCircle size={20} /><span>{post.commentCount}</span></button>
+        <button onClick={toggleComments} aria-expanded={commentsOpen} aria-label={`댓글 ${commentCount}개 보기`}><MessageCircle size={20} /><span>{commentCount}</span></button>
         <button><Send size={18} /></button>
         <button className="post-game-tag"><span style={{ background: post.game.color }}>{post.game.icon}</span>{post.game.name}</button>
       </div>
-      {commenting && <form className="comment-form" onSubmit={submitComment}><Avatar name="게이머" size={32} /><input autoFocus value={comment} onChange={(e) => setComment(e.target.value)} placeholder="따뜻한 댓글을 남겨보세요" maxLength={1000} /><button aria-label="댓글 등록"><Send size={16} /></button></form>}
+      {commentsOpen && (
+        <section className="comments-panel" aria-label="댓글">
+          {commentsLoading && !commentsLoaded ? (
+            <p className="comments-status">댓글을 불러오는 중...</p>
+          ) : comments.length > 0 ? (
+            <div className="comment-list">
+              {comments.map((item) => (
+                <article className="comment-item" key={item.id}>
+                  <Avatar name={item.author.username} url={item.author.avatarUrl} size={32} />
+                  <div>
+                    <header><strong>{item.author.username}</strong><span>{timeAgo(item.createdAt)} 전</span></header>
+                    <p>{item.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="comments-status">아직 댓글이 없어요. 첫 댓글을 남겨보세요.</p>
+          )}
+          <form className="comment-form" onSubmit={submitComment}>
+            <Avatar name="게이머" size={32} />
+            <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="따뜻한 댓글을 남겨보세요" maxLength={1000} />
+            <button aria-label="댓글 등록"><Send size={16} /></button>
+          </form>
+        </section>
+      )}
     </article>
   );
 }

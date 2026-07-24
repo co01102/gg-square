@@ -38,7 +38,17 @@ export async function createPost(
     }
     uploaded.push(path);
     const { data: publicUrl } = supabase.storage.from("post-images").getPublicUrl(path);
-    await supabase.from("post_images").insert({ post_id: post.id, storage_path: path, public_url: publicUrl.publicUrl, position: index });
+    const { error: imageRecordError } = await supabase.from("post_images").insert({
+      post_id: post.id,
+      storage_path: path,
+      public_url: publicUrl.publicUrl,
+      position: index
+    });
+    if (imageRecordError) {
+      await supabase.storage.from("post-images").remove(uploaded);
+      await supabase.from("posts").delete().eq("id", post.id);
+      return { error: "사진 정보를 저장하지 못했습니다. 다시 시도해 주세요." };
+    }
   }
   revalidatePath("/");
   return { success: "게시물을 올렸어요!" };

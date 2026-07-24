@@ -115,6 +115,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .comment-form { display: flex; align-items: center; gap: 8px; margin-top: 9px; padding-top: 12px; border-top: 1px solid var(--line); }
 .comment-form input { flex: 1; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: #0c0e14; color: white; padding: 0 12px; outline: 0; }
 .comment-form button { width: 34px; height: 34px; border: 0; border-radius: 9px; display: grid; place-items: center; background: var(--purple); cursor:pointer; }
+.comments-panel { margin-top: 9px; padding-top: 12px; border-top: 1px solid var(--line); }
+.comment-list { display: grid; gap: 13px; }
+.comment-item { display: flex; align-items: flex-start; gap: 9px; }
+.comment-item > div { min-width: 0; flex: 1; padding: 9px 11px; border-radius: 11px; background: #0c0e14; }
+.comment-item header { display: flex; align-items: center; gap: 8px; }
+.comment-item header strong { font-size: 11px; }
+.comment-item header span { color: #6f7787; font-size: 9px; }
+.comment-item p { margin: 5px 0 0; color: #d7dbe3; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comments-status { margin: 4px 0 12px; color: #747c8b; font-size: 11px; text-align: center; }
+.comments-panel .comment-form { margin-top: 12px; }
 .empty-state { min-height: 300px; display: grid; place-items: center; align-content: center; gap: 8px; color: #626a78; text-align: center; }
 .empty-state h3 { color: white; margin: 8px 0 0; }
 .empty-state p { margin: 0 0 10px; }
