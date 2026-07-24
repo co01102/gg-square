@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900">
+  <defs><radialGradient id="r"><stop stop-color="#1a6b88"/><stop offset=".5" stop-color="#17334d"/><stop offset="1" stop-color="#080c15"/></radialGradient></defs>
+  <rect width="900" height="900" fill="url(#r)"/>
+  <circle cx="450" cy="430" r="310" fill="none" stroke="#5ddcff" stroke-width="3" opacity=".4"/>
+  <circle cx="450" cy="430" r="250" fill="none" stroke="#5ddcff" stroke-width="2" stroke-dasharray="10 18" opacity=".6"/>
+  <path d="M450 130l72 200 208 8-164 128 57 204-173-116-173 116 57-204-164-128 208-8z" fill="#112136" stroke="#8be6ff" stroke-width="8"/>
+  <path d="M450 245l44 130 137 4-110 82 38 131-109-77-109 77 38-131-110-82 137-4z" fill="#57c8e8" opacity=".7"/>
+  <text x="450" y="800" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="40" font-weight="800" letter-spacing="8">RAID CLEAR</text>
+</svg>
