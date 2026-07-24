@@ -100,6 +100,22 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
     }).catch((error) => toast.error(error.message));
   }
 
+  async function deletePost(id: string) {
+    if (!window.confirm("이 게시물을 삭제할까요? 사진과 댓글도 함께 삭제됩니다.")) return;
+    const response = await fetch(`/api/posts/${id}`, { method: "DELETE" });
+    if (response.status === 401) {
+      setAuthOpen(true);
+      return;
+    }
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      toast.error(data.error || "게시물을 삭제하지 못했습니다.");
+      return;
+    }
+    setPosts((items) => items.filter((post) => post.id !== id));
+    toast.success("게시물을 삭제했습니다.");
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -184,7 +200,7 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
 
             {loading ? <FeedSkeleton /> : posts.length ? (
               <div className="post-list">
-                {posts.map((post) => <PostCard key={post.id} post={post} onLike={() => toggleLike(post.id)} demo={demo} onLogin={() => setAuthOpen(true)} />)}
+                {posts.map((post) => <PostCard key={post.id} post={post} onLike={() => toggleLike(post.id)} onDelete={() => deletePost(post.id)} demo={demo} onLogin={() => setAuthOpen(true)} />)}
                 <div ref={loadMoreRef} className="feed-sentinel" aria-hidden="true" />
                 {loading && nextCursor && <div className="loading-more">다음 이야기를 불러오는 중...</div>}
               </div>
@@ -224,7 +240,8 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
   );
 }
 
-function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () => void; demo: boolean; onLogin: () => void }) {
+function PostCard({ post, onLike, onDelete, demo, onLogin }: { post: FeedPost; onLike: () => void; onDelete: () => Promise<void>; demo: boolean; onLogin: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
@@ -271,7 +288,16 @@ function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () 
       <div className="post-head">
         <Avatar name={post.author.username} url={post.author.avatarUrl} />
         <div className="post-author"><strong>{post.author.username} {post.author.level && <small>LV.{post.author.level}</small>}</strong><span>{timeAgo(post.createdAt)} 전 · <i className="game-dot" style={{ background: post.game.color }} /> {post.game.name}</span></div>
-        <button className="icon-button" aria-label="게시물 메뉴"><MoreHorizontal size={20} /></button>
+        {post.isOwner && (
+          <div className="post-menu">
+            <button className="icon-button" aria-label="게시물 메뉴" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
+            {menuOpen && (
+              <div className="post-menu-popover" role="menu">
+                <button role="menuitem" onClick={() => { setMenuOpen(false); void onDelete(); }}>삭제하기</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <p className="post-body">{post.body}</p>
       {post.images.length > 0 && (

@@ -21,7 +21,8 @@ export const demoPosts: FeedPost[] = [
     images: ["/demo/rank-up.svg"],
     likeCount: 128,
     commentCount: 23,
-    liked: false
+    liked: false,
+    isOwner: false
   },
   {
     id: "demo-2",
@@ -32,7 +33,8 @@ export const demoPosts: FeedPost[] = [
     images: ["/demo/tactics.svg"],
     likeCount: 76,
     commentCount: 18,
-    liked: true
+    liked: true,
+    isOwner: false
   },
   {
     id: "demo-3",
@@ -46,6 +48,7 @@ export const demoPosts: FeedPost[] = [
     ],
     likeCount: 214,
     commentCount: 31,
-    liked: false
+    liked: false,
+    isOwner: false
   }
 ];

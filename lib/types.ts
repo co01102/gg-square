@@ -16,6 +16,7 @@ export type FeedPost = {
   likeCount: number;
   commentCount: number;
   liked: boolean;
+  isOwner: boolean;
 };
 
 export type PostComment = {

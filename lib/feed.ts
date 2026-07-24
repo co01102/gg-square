@@ -22,7 +22,8 @@ function mapPost(row: Record<string, unknown>, currentUserId?: string): FeedPost
     images: images.sort((a, b) => Number(a.position) - Number(b.position)).map((image) => String(image.public_url)),
     likeCount: likes.length,
     commentCount: comments.length,
-    liked: Boolean(currentUserId && likes.some((like) => (like as { user_id?: string }).user_id === currentUserId))
+    liked: Boolean(currentUserId && likes.some((like) => (like as { user_id?: string }).user_id === currentUserId)),
+    isOwner: Boolean(currentUserId && row.author_id === currentUserId)
   };
 }
 

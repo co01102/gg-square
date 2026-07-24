@@ -92,12 +92,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .post-list { display: grid; gap: 16px; margin-top: 17px; }
 .post-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 19px; transition: border-color .2s, transform .2s; overflow: hidden; }
 .post-card:hover { border-color: #353b4a; }
-.post-head { display: flex; align-items: center; gap: 11px; }
+.post-head { position: relative; display: flex; align-items: center; gap: 11px; }
 .post-author { min-width: 0; flex: 1; }
 .post-author strong, .post-author span { display: block; }
 .post-author strong { font-size: 13px; }
 .post-author strong small { color: #a78bfa; font-size: 8px; padding: 2px 4px; margin-left: 3px; background: #8b5cf61b; border-radius: 3px; vertical-align: 2px; }
 .post-author span { color: #757d8c; font-size: 10px; margin-top: 3px; }
+.post-menu { position: relative; }
+.post-menu-popover { position: absolute; z-index: 12; top: 42px; right: 0; width: 128px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: #171b24; box-shadow: 0 14px 36px #0008; }
+.post-menu-popover button { width: 100%; min-height: 36px; border: 0; border-radius: 7px; padding: 0 10px; color: #ff7890; background: transparent; font-size: 12px; font-weight: 700; text-align: left; cursor: pointer; }
+.post-menu-popover button:hover { background: #ff5f7514; }
 .game-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
 .post-body { margin: 15px 1px; color: #e2e4e9; line-height: 1.7; font-size: 13px; white-space: pre-wrap; }
 .post-images { display: grid; gap: 4px; overflow: hidden; border-radius: 11px; background: #090b10; max-height: 480px; }
