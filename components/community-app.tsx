@@ -1,0 +1,328 @@
+"use client";
+
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Bell, ChevronDown, Compass, Flame, Gamepad2, Heart, Home, ImagePlus,
+  LogIn, Menu, MessageCircle, MoreHorizontal, Plus, Search, Send, Sparkles, User, X
+} from "lucide-react";
+import { toast } from "sonner";
+import { createPost } from "@/app/actions/posts";
+import { resetPassword, signIn, signInWithGoogle, signUp } from "@/app/actions/auth";
+import type { FeedPost, Game } from "@/lib/types";
+
+type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; demo: boolean };
+type AuthView = "login" | "signup" | "forgot";
+
+function timeAgo(date: string) {
+  const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
+  if (mins < 1) return "방금";
+  if (mins < 60) return `${mins}분`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}시간`;
+  return `${Math.floor(mins / 1440)}일`;
+}
+
+function Avatar({ name, url, size = 42 }: { name: string; url?: string | null; size?: number }) {
+  return url ? (
+    <Image className="avatar" src={url} alt={`${name} 프로필`} width={size} height={size} />
+  ) : (
+    <span className="avatar avatar-fallback" style={{ width: size, height: size }} aria-label={`${name} 프로필`}>
+      {name.slice(0, 1)}
+    </span>
+  );
+}
+
+export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props) {
+  const [posts, setPosts] = useState(initialPosts);
+  const [activeGame, setActiveGame] = useState("all");
+  const [sort, setSort] = useState<"latest" | "popular">("latest");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [nextCursor, setNextCursor] = useState(initialCursor);
+  const [loading, startTransition] = useTransition();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  function refreshFeed(game = activeGame, nextSort = sort) {
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/feed?game=${game}&sort=${nextSort}`);
+        const data = await response.json();
+        setPosts(data.posts || []);
+        setNextCursor(data.nextCursor || null);
+      } catch {
+        toast.error("피드를 불러오지 못했어요.");
+      }
+    });
+  }
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !nextCursor || loading || sort !== "latest") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      startTransition(async () => {
+        try {
+          const response = await fetch(`/api/feed?game=${activeGame}&sort=latest&cursor=${encodeURIComponent(nextCursor)}`);
+          const data = await response.json();
+          setPosts((current) => {
+            const known = new Set(current.map((post) => post.id));
+            return [...current, ...(data.posts || []).filter((post: FeedPost) => !known.has(post.id))];
+          });
+          setNextCursor(data.nextCursor || null);
+        } catch {
+          toast.error("다음 게시물을 불러오지 못했어요.");
+        }
+      });
+    }, { rootMargin: "300px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeGame, loading, nextCursor, sort]);
+
+  function selectGame(id: string) {
+    setActiveGame(id);
+    refreshFeed(id, sort);
+  }
+
+  function selectSort(value: "latest" | "popular") {
+    setSort(value);
+    refreshFeed(activeGame, value);
+  }
+
+  function toggleLike(id: string) {
+    setPosts((items) => items.map((post) => post.id === id
+      ? { ...post, liked: !post.liked, likeCount: post.likeCount + (post.liked ? -1 : 1) }
+      : post));
+    if (demo) toast.success("데모 모드에서 좋아요를 반영했어요.");
+    else fetch(`/api/posts/${id}/like`, { method: "POST" }).then(async (res) => {
+      if (res.status === 401) { setAuthOpen(true); throw new Error("로그인이 필요합니다."); }
+      if (!res.ok) throw new Error("좋아요 처리에 실패했습니다.");
+    }).catch((error) => toast.error(error.message));
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <button className="mobile-only icon-button" aria-label="메뉴"><Menu size={21} /></button>
+          <Link href="/" className="brand"><span><Gamepad2 size={20} /></span> GG SQUARE</Link>
+          <div className="search-box">
+            <Search size={17} />
+            <input aria-label="검색" placeholder="게임, 게시물, 유저 검색" />
+            <kbd>⌘ K</kbd>
+          </div>
+          <div className="header-actions">
+            {demo && <span className="demo-badge">DEMO</span>}
+            <button className="icon-button desktop-only" aria-label="알림"><Bell size={19} /></button>
+            <button className="button ghost desktop-only" onClick={() => setAuthOpen(true)}><LogIn size={17} /> 로그인</button>
+            <button className="button primary" onClick={() => setComposerOpen(true)}><Plus size={18} /> <span className="desktop-only">새 게시물</span></button>
+          </div>
+        </div>
+      </header>
+
+      <div className="page-grid">
+        <aside className="sidebar left-sidebar">
+          <nav className="main-nav" aria-label="주 메뉴">
+            <a className="active" href="#"><Home size={20} /> 홈</a>
+            <a href="#games"><Compass size={20} /> 게임 탐색</a>
+            <a href="#popular"><Flame size={20} /> 인기 게시물</a>
+            <Link href="/profile"><User size={20} /> 내 프로필</Link>
+          </nav>
+          <div className="side-divider" />
+          <div className="side-heading"><span>게임 채널</span><button aria-label="게임 더보기"><Plus size={15} /></button></div>
+          <div className="game-list">
+            {games.slice(1, 7).map((game) => (
+              <button key={game.id} className={activeGame === game.id ? "active" : ""} onClick={() => selectGame(game.id)}>
+                <span className="game-icon" style={{ "--game": game.color } as React.CSSProperties}>{game.icon}</span>
+                <span>{game.name}</span>
+              </button>
+            ))}
+          </div>
+          <div className="user-card">
+            <Avatar name="게이머" size={38} />
+            <div><strong>게스트 게이머</strong><span>로그인하고 참여하세요</span></div>
+            <MoreHorizontal size={18} />
+          </div>
+        </aside>
+
+        <main className="feed">
+          <section className="welcome">
+            <div>
+              <span className="eyebrow"><Sparkles size={14} /> 오늘도 GG!</span>
+              <h1>게이머들의 순간이<br /><em>모이는 곳</em></h1>
+              <p>플레이의 짜릿한 순간부터 꿀팁까지,<br className="desktop-only" /> 좋아하는 게임 이야기를 나눠보세요.</p>
+              <button className="button primary big" onClick={() => setComposerOpen(true)}>첫 이야기 남기기 <Send size={17} /></button>
+            </div>
+            <div className="hero-art" aria-hidden="true">
+              <div className="orb orb-one" /><div className="orb orb-two" />
+              <Gamepad2 size={92} />
+              <span className="float-chip chip-one">+ 240 XP</span>
+              <span className="float-chip chip-two">LEVEL UP!</span>
+            </div>
+          </section>
+
+          <section className="game-filter" id="games">
+            <div className="section-title"><h2>게임 둘러보기</h2><button>전체 보기 <ChevronDown size={15} /></button></div>
+            <div className="game-chips">
+              {games.map((game) => (
+                <button key={game.id} className={activeGame === game.id ? "active" : ""} onClick={() => selectGame(game.id)}>
+                  <span className="game-icon" style={{ "--game": game.color } as React.CSSProperties}>{game.icon}</span>
+                  {game.name}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section id="popular">
+            <div className="feed-tabs">
+              <div>
+                <button className={sort === "latest" ? "active" : ""} onClick={() => selectSort("latest")}>최신 피드</button>
+                <button className={sort === "popular" ? "active" : ""} onClick={() => selectSort("popular")}><Flame size={15} /> 인기</button>
+              </div>
+              <span>{posts.length}개의 이야기</span>
+            </div>
+
+            {loading ? <FeedSkeleton /> : posts.length ? (
+              <div className="post-list">
+                {posts.map((post) => <PostCard key={post.id} post={post} onLike={() => toggleLike(post.id)} demo={demo} onLogin={() => setAuthOpen(true)} />)}
+                <div ref={loadMoreRef} className="feed-sentinel" aria-hidden="true" />
+                {loading && nextCursor && <div className="loading-more">다음 이야기를 불러오는 중...</div>}
+              </div>
+            ) : (
+              <div className="empty-state"><Gamepad2 size={42} /><h3>아직 게시물이 없어요</h3><p>이 게임의 첫 이야기를 남겨보세요.</p><button className="button primary" onClick={() => setComposerOpen(true)}>게시물 작성</button></div>
+            )}
+          </section>
+        </main>
+
+        <aside className="sidebar right-sidebar">
+          <section className="side-panel">
+            <div className="panel-title"><h3><Flame size={17} /> 지금 뜨는 이야기</h3><span>24시간</span></div>
+            {["신규 시즌 티어 배치 후기", "레이드 첫 클리어 인증", "이번 패치 핵심 변경점", "주말 같이 게임할 파티원"].map((title, index) => (
+              <a className="trend" href="#popular" key={title}><b>0{index + 1}</b><span><strong>{title}</strong><small>{[342, 287, 193, 151][index]}명이 이야기 중</small></span></a>
+            ))}
+          </section>
+          <section className="side-panel compact">
+            <div className="panel-title"><h3>추천 게이머</h3><button>더보기</button></div>
+            {["캐리머신", "힐러의품격", "겜잘알"].map((name, i) => (
+              <div className="suggested" key={name}><Avatar name={name} size={36} /><span><strong>{name}</strong><small>Lv.{35 - i * 6}</small></span><button>팔로우</button></div>
+            ))}
+          </section>
+          <p className="legal">이용약관 · 개인정보처리방침 · 커뮤니티 가이드<br />© 2026 GG Square</p>
+        </aside>
+      </div>
+
+      <nav className="mobile-nav">
+        <a className="active" href="#"><Home size={21} /><span>홈</span></a>
+        <a href="#games"><Compass size={21} /><span>탐색</span></a>
+        <button className="mobile-create" onClick={() => setComposerOpen(true)}><Plus size={25} /></button>
+        <a href="#popular"><Flame size={21} /><span>인기</span></a>
+        <Link href="/profile"><User size={21} /><span>프로필</span></Link>
+      </nav>
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+      {composerOpen && <ComposerModal games={games.slice(1)} demo={demo} onClose={() => setComposerOpen(false)} onCreated={() => refreshFeed()} />}
+    </div>
+  );
+}
+
+function PostCard({ post, onLike, demo, onLogin }: { post: FeedPost; onLike: () => void; demo: boolean; onLogin: () => void }) {
+  const [commenting, setCommenting] = useState(false);
+  const [comment, setComment] = useState("");
+  async function submitComment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!comment.trim()) return;
+    if (demo) { toast.success("데모 댓글이 등록됐어요."); setComment(""); setCommenting(false); return; }
+    const response = await fetch(`/api/posts/${post.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: comment }) });
+    if (response.status === 401) { onLogin(); return; }
+    if (!response.ok) return toast.error("댓글을 등록하지 못했어요.");
+    toast.success("댓글을 등록했어요.");
+    setComment(""); setCommenting(false);
+  }
+  return (
+    <article className="post-card">
+      <div className="post-head">
+        <Avatar name={post.author.username} url={post.author.avatarUrl} />
+        <div className="post-author"><strong>{post.author.username} {post.author.level && <small>LV.{post.author.level}</small>}</strong><span>{timeAgo(post.createdAt)} 전 · <i className="game-dot" style={{ background: post.game.color }} /> {post.game.name}</span></div>
+        <button className="icon-button" aria-label="게시물 메뉴"><MoreHorizontal size={20} /></button>
+      </div>
+      <p className="post-body">{post.body}</p>
+      {post.images.length > 0 && (
+        <div className={`post-images count-${Math.min(post.images.length, 4)}`}>
+          {post.images.slice(0, 4).map((src, index) => <Image key={src} src={src} alt={`게시물 사진 ${index + 1}`} width={760} height={480} sizes="(max-width: 700px) 100vw, 620px" />)}
+        </div>
+      )}
+      <div className="post-actions">
+        <button className={post.liked ? "liked" : ""} onClick={onLike}><Heart size={20} fill={post.liked ? "currentColor" : "none"} /><span>{post.likeCount}</span></button>
+        <button onClick={() => setCommenting((value) => !value)}><MessageCircle size={20} /><span>{post.commentCount}</span></button>
+        <button><Send size={18} /></button>
+        <button className="post-game-tag"><span style={{ background: post.game.color }}>{post.game.icon}</span>{post.game.name}</button>
+      </div>
+      {commenting && <form className="comment-form" onSubmit={submitComment}><Avatar name="게이머" size={32} /><input autoFocus value={comment} onChange={(e) => setComment(e.target.value)} placeholder="따뜻한 댓글을 남겨보세요" maxLength={1000} /><button aria-label="댓글 등록"><Send size={16} /></button></form>}
+    </article>
+  );
+}
+
+function AuthModal({ onClose }: { onClose: () => void }) {
+  const [view, setView] = useState<AuthView>("login");
+  const action = view === "login" ? signIn : view === "signup" ? signUp : resetPassword;
+  const [state, formAction, pending] = useActionState(action, {});
+  const title = view === "login" ? "다시 만나 반가워요!" : view === "signup" ? "GG Square에 합류하세요" : "비밀번호를 재설정할까요?";
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal auth-modal" role="dialog" aria-modal="true" aria-label="로그인">
+        <button className="modal-close" onClick={onClose} aria-label="닫기"><X size={20} /></button>
+        <div className="modal-logo"><Gamepad2 size={29} /></div>
+        <h2>{title}</h2>
+        <p>{view === "login" ? "로그인하고 게이머들과 이야기를 나눠보세요." : view === "signup" ? "계정을 만들고 나만의 게임 이야기를 시작하세요." : "가입한 이메일로 재설정 링크를 보내드려요."}</p>
+        {view !== "forgot" && <><form action={signInWithGoogle}><button className="social-login" type="submit"><b>G</b> Google로 계속하기</button></form><div className="or"><span>또는 이메일로</span></div></>}
+        <form action={formAction} className="auth-form">
+          {view === "signup" && <label>닉네임<input name="username" required minLength={2} maxLength={20} placeholder="게임에서 사용할 이름" /></label>}
+          <label>이메일<input name="email" type="email" required placeholder="player@example.com" /></label>
+          {view !== "forgot" && <label>비밀번호<input name="password" type="password" required minLength={8} placeholder="8자 이상 입력" /></label>}
+          {state.error && <p className="form-error">{state.error}</p>}
+          {state.success && <p className="form-success">{state.success}</p>}
+          <button className="button primary full" disabled={pending}>{pending ? "처리 중..." : view === "login" ? "로그인" : view === "signup" ? "계정 만들기" : "재설정 메일 보내기"}</button>
+        </form>
+        {view === "login" && <button className="auth-switch forgot-link" onClick={() => setView("forgot")}>비밀번호를 잊으셨나요?</button>}
+        <button className="auth-switch" onClick={() => setView(view === "login" ? "signup" : "login")}>{view === "login" ? "아직 계정이 없나요? 가입하기" : "로그인으로 돌아가기"}</button>
+      </div>
+    </div>
+  );
+}
+
+function ComposerModal({ games, demo, onClose, onCreated }: { games: Game[]; demo: boolean; onClose: () => void; onCreated: () => void }) {
+  const [state, formAction, pending] = useActionState(createPost, {});
+  const [previews, setPreviews] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (state.success) { toast.success(state.success); onCreated(); onClose(); }
+  }, [state.success, onClose, onCreated]);
+  function chooseImages(files: FileList | null) {
+    previews.forEach(URL.revokeObjectURL);
+    setPreviews(Array.from(files || []).slice(0, 4).map(URL.createObjectURL));
+  }
+  function demoSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (!demo) return;
+    event.preventDefault();
+    toast.success("데모 게시물이 준비됐어요. Supabase 연결 후 실제 저장됩니다.");
+    onClose();
+  }
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal composer" role="dialog" aria-modal="true" aria-label="새 게시물">
+        <div className="composer-head"><h2>새 이야기</h2><button className="icon-button" onClick={onClose}><X size={20} /></button></div>
+        <form action={formAction} onSubmit={demoSubmit}>
+          <div className="composer-user"><Avatar name="게이머" /><div><strong>나의 이야기</strong><select name="gameId" required defaultValue=""><option value="" disabled>게임 선택</option>{games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}</select></div></div>
+          <textarea name="body" maxLength={2000} required placeholder="어떤 게임 이야기를 나누고 싶나요?" />
+          {previews.length > 0 && <div className="preview-grid">{previews.map((src, i) => <Image key={src} src={src} alt={`미리보기 ${i + 1}`} width={220} height={160} unoptimized />)}</div>}
+          <input ref={fileRef} hidden type="file" name="images" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => chooseImages(e.target.files)} />
+          {state.error && <p className="form-error">{state.error}</p>}
+          <div className="composer-footer"><button type="button" className="add-photo" onClick={() => fileRef.current?.click()}><ImagePlus size={18} /> 사진 추가 <small>{previews.length}/4</small></button><button className="button primary" disabled={pending}>{pending ? "업로드 중..." : "게시하기"}</button></div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FeedSkeleton() {
+  return <div className="post-list">{[1, 2].map((item) => <div className="post-card skeleton" key={item}><div className="sk-head"><i /><span /></div><b /><b /><div className="sk-image" /></div>)}</div>;
+}
