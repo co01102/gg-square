@@ -276,6 +276,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
         <form action={formAction} className="auth-form">
           <label>아이디<input name="username" required minLength={2} maxLength={20} autoComplete="username" placeholder="한글, 영문, 숫자, 밑줄 사용" /></label>
           <label>비밀번호<input name="password" type="password" required minLength={8} autoComplete={view === "signup" ? "new-password" : "current-password"} placeholder="8자 이상 입력" /></label>
+          {view === "signup" && <p className="privacy-note">실명, 이메일, 전화번호, 결제정보는 입력하지 마세요. 이메일을 받지 않으므로 비밀번호 분실 시 계정을 복구할 수 없습니다.</p>}
           {state.error && <p className="form-error">{state.error}</p>}
           {state.success && <p className="form-success">{state.success}</p>}
           <button className="button primary full" disabled={pending}>{pending ? "처리 중..." : view === "login" ? "로그인" : "계정 만들기"}</button>
@@ -310,6 +311,7 @@ function ComposerModal({ games, demo, onClose, onCreated }: { games: Game[]; dem
         <form action={formAction} onSubmit={demoSubmit}>
           <div className="composer-user"><Avatar name="게이머" /><div><strong>나의 이야기</strong><select name="gameId" required defaultValue=""><option value="" disabled>게임 선택</option>{games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}</select></div></div>
           <textarea name="body" maxLength={2000} required placeholder="어떤 게임 이야기를 나누고 싶나요?" />
+          <p className="privacy-note">게시물과 사진은 공개됩니다. 실명, 연락처, 주소, 결제·카드정보를 올리지 마세요.</p>
           {previews.length > 0 && <div className="preview-grid">{previews.map((src, i) => <Image key={src} src={src} alt={`미리보기 ${i + 1}`} width={220} height={160} unoptimized />)}</div>}
           <input ref={fileRef} hidden type="file" name="images" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => chooseImages(e.target.files)} />
           {state.error && <p className="form-error">{state.error}</p>}
