@@ -6,6 +6,11 @@ export type Game = {
   color: string;
 };
 
+export type ViewerProfile = {
+  username: string;
+  avatarUrl: string | null;
+};
+
 export type FeedPost = {
   id: string;
   body: string;

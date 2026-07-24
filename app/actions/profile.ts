@@ -29,6 +29,7 @@ export async function updateProfile(
   const values = { username: parsed.data.username, bio: parsed.data.bio, ...(avatarUrl ? { avatar_url: avatarUrl } : {}) };
   const { error } = await supabase.from("profiles").update(values).eq("id", user.id);
   if (error) return { error: error.code === "23505" ? "이미 사용 중인 닉네임입니다." : error.message };
+  revalidatePath("/");
   revalidatePath("/profile");
   return { success: "프로필을 저장했어요." };
 }

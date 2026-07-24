@@ -10,9 +10,9 @@ import {
 import { toast } from "sonner";
 import { createPost } from "@/app/actions/posts";
 import { signIn, signUp } from "@/app/actions/auth";
-import type { FeedPost, Game, PostComment } from "@/lib/types";
+import type { FeedPost, Game, PostComment, ViewerProfile } from "@/lib/types";
 
-type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; demo: boolean };
+type Props = { initialPosts: FeedPost[]; initialCursor: string | null; games: Game[]; viewer: ViewerProfile | null; demo: boolean };
 type AuthView = "login" | "signup";
 
 function timeAgo(date: string) {
@@ -33,7 +33,7 @@ function Avatar({ name, url, size = 42 }: { name: string; url?: string | null; s
   );
 }
 
-export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props) {
+export function CommunityApp({ initialPosts, initialCursor, games, viewer, demo }: Props) {
   const [posts, setPosts] = useState(initialPosts);
   const [activeGame, setActiveGame] = useState("all");
   const [sort, setSort] = useState<"latest" | "popular">("latest");
@@ -130,7 +130,11 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
           <div className="header-actions">
             {demo && <span className="demo-badge">DEMO</span>}
             <button className="icon-button desktop-only" aria-label="알림"><Bell size={19} /></button>
-            <button className="button ghost desktop-only" onClick={() => setAuthOpen(true)}><LogIn size={17} /> 로그인</button>
+            {viewer ? (
+              <Link href="/profile" className="button ghost desktop-only"><User size={17} /> {viewer.username}</Link>
+            ) : (
+              <button className="button ghost desktop-only" onClick={() => setAuthOpen(true)}><LogIn size={17} /> 로그인</button>
+            )}
             <button className="button primary" onClick={() => setComposerOpen(true)}><Plus size={18} /> <span className="desktop-only">새 게시물</span></button>
           </div>
         </div>
@@ -154,11 +158,19 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
               </button>
             ))}
           </div>
-          <div className="user-card">
-            <Avatar name="게이머" size={38} />
-            <div><strong>게스트 게이머</strong><span>로그인하고 참여하세요</span></div>
-            <MoreHorizontal size={18} />
-          </div>
+          {viewer ? (
+            <Link href="/profile" className="user-card" aria-label={`${viewer.username} 프로필 보기`}>
+              <Avatar name={viewer.username} url={viewer.avatarUrl} size={38} />
+              <div><strong>{viewer.username}</strong><span>내 프로필 보기</span></div>
+              <MoreHorizontal size={18} />
+            </Link>
+          ) : (
+            <button type="button" className="user-card" onClick={() => setAuthOpen(true)}>
+              <Avatar name="게이머" size={38} />
+              <div><strong>게스트 게이머</strong><span>로그인하고 참여하세요</span></div>
+              <LogIn size={18} />
+            </button>
+          )}
         </aside>
 
         <main className="feed">

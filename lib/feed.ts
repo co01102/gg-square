@@ -1,6 +1,6 @@
 import { createClient, isSupabaseConfigured } from "./supabase/server";
 import { demoGames, demoPosts } from "./mock-data";
-import type { FeedPost, Game } from "./types";
+import type { FeedPost, Game, ViewerProfile } from "./types";
 
 type FeedOptions = { cursor?: string | null; game?: string; sort?: "latest" | "popular" };
 
@@ -28,15 +28,22 @@ function mapPost(row: Record<string, unknown>, currentUserId?: string): FeedPost
 }
 
 export async function getInitialFeed() {
-  if (!isSupabaseConfigured()) return { posts: demoPosts, nextCursor: null, games: demoGames, demo: true };
+  if (!isSupabaseConfigured()) return { posts: demoPosts, nextCursor: null, games: demoGames, viewer: null, demo: true };
   const supabase = await createClient();
-  if (!supabase) return { posts: demoPosts, nextCursor: null, games: demoGames, demo: true };
-  const [{ data: games }, feed] = await Promise.all([
+  if (!supabase) return { posts: demoPosts, nextCursor: null, games: demoGames, viewer: null, demo: true };
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: games }, feed, { data: profile }] = await Promise.all([
     supabase.from("games").select("*").eq("is_active", true).order("name"),
-    getFeedPage({ sort: "latest", game: "all" })
+    getFeedPage({ sort: "latest", game: "all" }),
+    user
+      ? supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
   const allGame: Game = { id: "all", name: "전체 게임", slug: "all", icon: "✦", color: "#8b5cf6" };
-  return { posts: feed.posts, nextCursor: feed.nextCursor, games: [allGame, ...((games || []) as Game[])], demo: false };
+  const viewer: ViewerProfile | null = profile
+    ? { username: profile.username, avatarUrl: profile.avatar_url }
+    : null;
+  return { posts: feed.posts, nextCursor: feed.nextCursor, games: [allGame, ...((games || []) as Game[])], viewer, demo: false };
 }
 
 export async function getFeedPage(options: FeedOptions) {
