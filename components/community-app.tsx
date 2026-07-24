@@ -105,7 +105,7 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
       <header className="topbar">
         <div className="topbar-inner">
           <button className="mobile-only icon-button" aria-label="메뉴"><Menu size={21} /></button>
-          <Link href="/" className="brand"><span><Gamepad2 size={20} /></span> GG SQUARE</Link>
+          <Link href="/" className="brand"><span><Gamepad2 size={20} /></span> co01102 Club</Link>
           <div className="search-box">
             <Search size={17} />
             <input aria-label="검색" placeholder="게임, 게시물, 유저 검색" />
@@ -207,7 +207,7 @@ export function CommunityApp({ initialPosts, initialCursor, games, demo }: Props
               <div className="suggested" key={name}><Avatar name={name} size={36} /><span><strong>{name}</strong><small>Lv.{35 - i * 6}</small></span><button>팔로우</button></div>
             ))}
           </section>
-          <p className="legal">이용약관 · 개인정보처리방침 · 커뮤니티 가이드<br />© 2026 GG Square</p>
+          <p className="legal">이용약관 · 개인정보처리방침 · 커뮤니티 가이드<br />© 2026 co01102 Club</p>
         </aside>
       </div>
 
@@ -265,7 +265,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<AuthView>("login");
   const action = view === "login" ? signIn : signUp;
   const [state, formAction, pending] = useActionState(action, {});
-  const title = view === "login" ? "다시 만나 반가워요!" : "GG Square에 합류하세요";
+  const title = view === "login" ? "다시 만나 반가워요!" : "co01102 Club에 합류하세요";
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal auth-modal" role="dialog" aria-modal="true" aria-label="로그인">

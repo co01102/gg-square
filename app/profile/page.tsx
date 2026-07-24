@@ -15,7 +15,7 @@ export default async function ProfilePage() {
     <main className="profile-page">
       <header className="simple-header">
         <Link href="/" className="icon-button" aria-label="홈으로"><ArrowLeft size={20} /></Link>
-        <Link href="/" className="brand"><span><Gamepad2 size={20} /></span> GG SQUARE</Link>
+        <Link href="/" className="brand"><span><Gamepad2 size={20} /></span> co01102 Club</Link>
       </header>
       <ProfileEditor user={user ? { id: user.id } : null} profile={profile} />
     </main>

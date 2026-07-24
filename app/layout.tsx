@@ -3,7 +3,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GG Square — 게임이 모이는 곳",
+  title: "co01102 Club — 게임이 모이는 곳",
   description: "좋아하는 게임의 순간과 이야기를 나누는 게이머 커뮤니티"
 };
 

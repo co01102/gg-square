@@ -1,4 +1,4 @@
-# GG Square
+# co01102 Club
 
 게임 태그 기반의 사진 중심 SNS 커뮤니티입니다. Next.js, Supabase, Vercel을 기준으로 구성했습니다.
 
