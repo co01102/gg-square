@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700">
+  <defs><linearGradient id="b" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#111827"/><stop offset="1" stop-color="#3b1022"/></linearGradient></defs>
+  <rect width="1200" height="700" fill="url(#b)"/>
+  <g stroke="#ff4661" stroke-width="3" opacity=".28"><path d="M0 120h1200M0 350h1200M0 580h1200M230 0v700M600 0v700M970 0v700"/><circle cx="600" cy="350" r="240"/></g>
+  <g transform="translate(600 350)">
+    <path d="M0-210L182-105v210L0 210-182 105v-210z" fill="#0b0f18" stroke="#ff4661" stroke-width="10"/>
+    <path d="M-96-82L0 65l96-147-51 190H-45z" fill="#ff4655"/>
+    <circle r="18" fill="#fff"/>
+  </g>
+  <g fill="#fff" font-family="Arial,sans-serif" font-weight="700"><text x="68" y="86" font-size="26">TACTICAL // PLAYBOOK</text><text x="1020" y="646" font-size="22">05 / 05</text></g>
+</svg>
