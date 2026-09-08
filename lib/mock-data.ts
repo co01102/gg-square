@@ -19,6 +19,7 @@ export const demoPosts: FeedPost[] = [
     author: { username: "미드장인", avatarUrl: null, level: 42 },
     game: demoGames[1],
     images: ["/demo/rank-up.svg"],
+    attachments: [],
     likeCount: 128,
     commentCount: 23,
     liked: false,
@@ -31,6 +32,7 @@ export const demoPosts: FeedPost[] = [
     author: { username: "에임은거들뿐", avatarUrl: null, level: 27 },
     game: demoGames[2],
     images: ["/demo/tactics.svg"],
+    attachments: [],
     likeCount: 76,
     commentCount: 18,
     liked: true,
@@ -46,6 +48,7 @@ export const demoPosts: FeedPost[] = [
       "/demo/raid.svg",
       "/demo/victory.svg"
     ],
+    attachments: [],
     likeCount: 214,
     commentCount: 31,
     liked: false,

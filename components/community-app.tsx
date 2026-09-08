@@ -4,13 +4,14 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Bell, ChevronDown, Compass, Flame, Gamepad2, Heart, Home, ImagePlus,
-  LogIn, Menu, MessageCircle, MoreHorizontal, Plus, Search, Send, Sparkles, User, X
+  Bell, ChevronDown, Compass, FileDown, FileText, Flame, Gamepad2, Heart, Home, ImagePlus,
+  LogIn, Menu, MessageCircle, MoreHorizontal, Paperclip, Plus, Search, Send, Sparkles, User, X
 } from "lucide-react";
 import { toast } from "sonner";
-import { createPost } from "@/app/actions/posts";
 import { signIn, signUp } from "@/app/actions/auth";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import type { FeedPost, Game, PostComment, ViewerProfile } from "@/lib/types";
+import { validateAttachments, validateImages } from "@/lib/validation";
 
 type Props = { initialPosts: FeedPost[]; initialPopularPosts: FeedPost[]; initialCursor: string | null; games: Game[]; viewer: ViewerProfile | null; demo: boolean };
 type AuthView = "login" | "signup";
@@ -31,6 +32,12 @@ function timeAgo(date: string) {
   if (mins < 60) return `${mins}분`;
   if (mins < 1440) return `${Math.floor(mins / 60)}시간`;
   return `${Math.floor(mins / 1440)}일`;
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function Avatar({ name, url, size = 42 }: { name: string; url?: string | null; size?: number }) {
@@ -343,6 +350,17 @@ function PostCard({ post, onLike, onDelete, demo, onLogin }: { post: FeedPost; o
           {post.images.slice(0, 4).map((src, index) => <Image key={src} src={src} alt={`게시물 사진 ${index + 1}`} width={760} height={480} sizes="(max-width: 700px) 100vw, 620px" />)}
         </div>
       )}
+      {post.attachments.length > 0 && (
+        <div className="post-attachments" aria-label="첨부파일">
+          {post.attachments.map((attachment) => (
+            <a key={attachment.id} href={`/api/attachments/${attachment.id}/download`}>
+              <FileText size={20} />
+              <span><strong>{attachment.fileName}</strong><small>{formatFileSize(attachment.sizeBytes)}</small></span>
+              <FileDown size={18} aria-label="다운로드" />
+            </a>
+          ))}
+        </div>
+      )}
       <div className="post-actions">
         <button className={post.liked ? "liked" : ""} onClick={onLike}><Heart size={20} fill={post.liked ? "currentColor" : "none"} /><span>{post.likeCount}</span></button>
         <button onClick={toggleComments} aria-expanded={commentsOpen} aria-label={`댓글 ${commentCount}개 보기`}><MessageCircle size={20} /><span>{commentCount}</span></button>
@@ -406,34 +424,136 @@ function AuthModal({ onClose }: { onClose: () => void }) {
 }
 
 function ComposerModal({ games, demo, onClose, onCreated }: { games: Game[]; demo: boolean; onClose: () => void; onCreated: () => void }) {
-  const [state, formAction, pending] = useActionState(createPost, {});
+  const [pending, setPending] = useState(false);
+  const [formError, setFormError] = useState("");
   const [previews, setPreviews] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (state.success) { toast.success(state.success); onCreated(); onClose(); }
-  }, [state.success, onClose, onCreated]);
+  const attachmentRef = useRef<HTMLInputElement>(null);
+
   function chooseImages(files: FileList | null) {
+    const nextFiles = Array.from(files || []);
+    const error = validateImages(nextFiles);
+    if (error) { setFormError(error); return; }
     previews.forEach(URL.revokeObjectURL);
-    setPreviews(Array.from(files || []).slice(0, 4).map(URL.createObjectURL));
+    setImageFiles(nextFiles);
+    setPreviews(nextFiles.map(URL.createObjectURL));
+    setFormError("");
   }
-  function demoSubmit(event: React.FormEvent<HTMLFormElement>) {
-    if (!demo) return;
+
+  function chooseAttachments(files: FileList | null) {
+    const nextFiles = Array.from(files || []);
+    const error = validateAttachments(nextFiles);
+    if (error) { setFormError(error); return; }
+    setAttachmentFiles(nextFiles);
+    setFormError("");
+  }
+
+  async function submitPost(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    toast.success("데모 게시물이 준비됐어요. Supabase 연결 후 실제 저장됩니다.");
-    onClose();
+    if (demo) {
+      toast.success("데모 게시물이 준비됐어요. Supabase 연결 후 실제 저장됩니다.");
+      onClose();
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const body = String(formData.get("body") || "").trim();
+    const gameId = String(formData.get("gameId") || "");
+    const imageError = validateImages(imageFiles);
+    const attachmentError = validateAttachments(attachmentFiles);
+    if (imageError || attachmentError) { setFormError(imageError || attachmentError || "파일을 확인해 주세요."); return; }
+
+    setPending(true);
+    setFormError("");
+    let postId = "";
+    const uploadedImages: string[] = [];
+    const uploadedAttachments: string[] = [];
+    const supabase = createBrowserClient();
+
+    try {
+      if (!supabase) throw new Error("Supabase가 연결되지 않았습니다.");
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body, gameId })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "게시물을 만들지 못했습니다.");
+      postId = result.postId;
+      const userId = result.userId;
+
+      for (const [position, image] of imageFiles.entries()) {
+        const extension = image.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "webp";
+        const storagePath = `${userId}/${postId}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("post-images").upload(storagePath, image, {
+          contentType: image.type
+        });
+        if (uploadError) throw uploadError;
+        uploadedImages.push(storagePath);
+        const { data: publicUrl } = supabase.storage.from("post-images").getPublicUrl(storagePath);
+        const { error: recordError } = await supabase.from("post_images").insert({
+          post_id: postId,
+          storage_path: storagePath,
+          public_url: publicUrl.publicUrl,
+          position
+        });
+        if (recordError) throw recordError;
+      }
+
+      for (const [position, file] of attachmentFiles.entries()) {
+        const rawExtension = file.name.includes(".") ? file.name.split(".").pop() || "" : "";
+        const extension = rawExtension.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const storagePath = `${userId}/${postId}/${crypto.randomUUID()}${extension ? `.${extension}` : ""}`;
+        const contentType = file.type || "application/octet-stream";
+        const { error: uploadError } = await supabase.storage.from("post-files").upload(storagePath, file, { contentType });
+        if (uploadError) throw uploadError;
+        uploadedAttachments.push(storagePath);
+        const { error: recordError } = await supabase.from("post_attachments").insert({
+          post_id: postId,
+          storage_path: storagePath,
+          file_name: file.name,
+          content_type: contentType,
+          size_bytes: file.size,
+          position
+        });
+        if (recordError) throw recordError;
+      }
+
+      toast.success("게시물을 올렸어요!");
+      onCreated();
+      onClose();
+    } catch (error) {
+      if (supabase && uploadedImages.length) await supabase.storage.from("post-images").remove(uploadedImages);
+      if (supabase && uploadedAttachments.length) await supabase.storage.from("post-files").remove(uploadedAttachments);
+      if (postId) await fetch(`/api/posts/${postId}`, { method: "DELETE" });
+      setFormError(error instanceof Error ? error.message : "파일 업로드에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setPending(false);
+    }
   }
+
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal composer" role="dialog" aria-modal="true" aria-label="새 게시물">
         <div className="composer-head"><h2>새 이야기</h2><button className="icon-button" onClick={onClose}><X size={20} /></button></div>
-        <form action={formAction} onSubmit={demoSubmit}>
+        <form onSubmit={submitPost}>
           <div className="composer-user"><Avatar name="게이머" /><div><strong>나의 이야기</strong><select name="gameId" required defaultValue=""><option value="" disabled>게임 선택</option>{games.map((game) => <option key={game.id} value={game.id}>{game.name}</option>)}</select></div></div>
           <textarea name="body" maxLength={2000} required placeholder="어떤 게임 이야기를 나누고 싶나요?" />
-          <p className="privacy-note">게시물과 사진은 공개됩니다. 실명, 연락처, 주소, 결제·카드정보를 올리지 마세요.</p>
+          <p className="privacy-note">게시물, 사진과 첨부파일은 공개됩니다. 실명, 연락처, 주소, 결제·카드정보를 올리지 마세요.</p>
           {previews.length > 0 && <div className="preview-grid">{previews.map((src, i) => <Image key={src} src={src} alt={`미리보기 ${i + 1}`} width={220} height={160} unoptimized />)}</div>}
-          <input ref={fileRef} hidden type="file" name="images" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => chooseImages(e.target.files)} />
-          {state.error && <p className="form-error">{state.error}</p>}
-          <div className="composer-footer"><button type="button" className="add-photo" onClick={() => fileRef.current?.click()}><ImagePlus size={18} /> 사진 추가 <small>{previews.length}/4</small></button><button className="button primary" disabled={pending}>{pending ? "업로드 중..." : "게시하기"}</button></div>
+          {attachmentFiles.length > 0 && (
+            <div className="selected-files">
+              {attachmentFiles.map((file, index) => (
+                <div key={`${file.name}-${file.size}`}><FileText size={17} /><span><strong>{file.name}</strong><small>{formatFileSize(file.size)}</small></span><button type="button" aria-label={`${file.name} 제거`} onClick={() => setAttachmentFiles((items) => items.filter((_, itemIndex) => itemIndex !== index))}><X size={15} /></button></div>
+              ))}
+            </div>
+          )}
+          <input ref={fileRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => chooseImages(e.target.files)} />
+          <input ref={attachmentRef} hidden type="file" multiple onChange={(e) => chooseAttachments(e.target.files)} />
+          {formError && <p className="form-error">{formError}</p>}
+          <div className="composer-footer"><div className="composer-tools"><button type="button" className="add-photo" onClick={() => fileRef.current?.click()}><ImagePlus size={18} /> 사진 <small>{previews.length}/4</small></button><button type="button" className="add-file" onClick={() => attachmentRef.current?.click()}><Paperclip size={18} /> 파일 <small>{attachmentFiles.length}/3</small></button></div><button className="button primary" disabled={pending}>{pending ? "업로드 중..." : "게시하기"}</button></div>
         </form>
       </div>
     </div>

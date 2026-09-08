@@ -31,11 +31,15 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   const { data: images } = await supabase.from("post_images").select("storage_path")
     .eq("post_id", id);
+  const { data: attachments } = await supabase.from("post_attachments").select("storage_path")
+    .eq("post_id", id);
   const { data, error } = await supabase.from("posts").delete()
     .eq("id", id).eq("author_id", user.id).select("id").maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!data) return NextResponse.json({ error: "삭제 권한이 없습니다." }, { status: 403 });
   const paths = (images || []).map((image) => image.storage_path);
   if (paths.length) await supabase.storage.from("post-images").remove(paths);
+  const attachmentPaths = (attachments || []).map((attachment) => attachment.storage_path);
+  if (attachmentPaths.length) await supabase.storage.from("post-files").remove(attachmentPaths);
   return new NextResponse(null, { status: 204 });
 }

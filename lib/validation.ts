@@ -25,12 +25,24 @@ export const profileSchema = z.object({
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+export const MAX_ATTACHMENTS = 3;
 
 export function validateImages(files: File[], limit = 4) {
   if (files.length > limit) return `사진은 최대 ${limit}장까지 올릴 수 있습니다.`;
   for (const file of files) {
     if (!IMAGE_TYPES.includes(file.type)) return "JPG, PNG, WebP 이미지만 올릴 수 있습니다.";
     if (file.size > MAX_BYTES) return "이미지는 한 장당 10MB 이하여야 합니다.";
+  }
+  return null;
+}
+
+export function validateAttachments(files: File[], limit = MAX_ATTACHMENTS) {
+  if (files.length > limit) return `파일은 최대 ${limit}개까지 첨부할 수 있습니다.`;
+  for (const file of files) {
+    if (!file.name || file.name.length > 255) return "파일 이름은 255자 이하여야 합니다.";
+    if (file.size <= 0) return "빈 파일은 첨부할 수 없습니다.";
+    if (file.size > MAX_ATTACHMENT_BYTES) return "첨부파일은 한 개당 25MB 이하여야 합니다.";
   }
   return null;
 }

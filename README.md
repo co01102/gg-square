@@ -1,6 +1,6 @@
 # co01102 Club
 
-게임 태그 기반의 사진 중심 SNS 커뮤니티입니다. Next.js, Supabase, Vercel을 기준으로 구성했습니다.
+게임 태그 기반의 사진·파일 공유 SNS 커뮤니티입니다. Next.js, Supabase, Vercel을 기준으로 구성했습니다.
 
 ## 로컬 실행
 
@@ -20,7 +20,7 @@ Supabase 환경 변수가 없으면 홈 화면은 데모 데이터로 실행됩�
 4. Site URL과 Redirect URLs에 로컬 및 Vercel 주소의 `/auth/callback`을 등록합니다.
 5. `.env.local`에 Project URL과 anon key를 입력합니다. `SUPABASE_SERVICE_ROLE_KEY`는 향후 관리 작업용이며 현재 앱 런타임에서는 사용하지 않습니다.
 
-Migration은 테이블, 인덱스, 프로필 자동 생성 trigger, RLS 정책, `post-images`/`avatars` 버킷과 대표 게임 데이터를 함께 생성합니다.
+Migration은 테이블, 인덱스, 프로필 자동 생성 trigger, RLS 정책, `post-images`/`post-files`/`avatars` 버킷과 대표 게임 데이터를 함께 생성합니다. 게시물에는 종류와 관계없이 최대 3개, 파일당 25MB까지 첨부할 수 있으며 공개 게시물에서 누구나 다운로드할 수 있습니다.
 
 ## Vercel 및 GitHub
 

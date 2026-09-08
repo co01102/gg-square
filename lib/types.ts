@@ -11,6 +11,13 @@ export type ViewerProfile = {
   avatarUrl: string | null;
 };
 
+export type PostAttachment = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+};
+
 export type FeedPost = {
   id: string;
   body: string;
@@ -18,6 +25,7 @@ export type FeedPost = {
   author: { username: string; avatarUrl: string | null; level?: number };
   game: Game;
   images: string[];
+  attachments: PostAttachment[];
   likeCount: number;
   commentCount: number;
   liked: boolean;

@@ -16,6 +16,7 @@ function mapPost(row: Record<string, unknown>, currentUserId?: string): FeedPost
   const profile = row.profiles as Record<string, unknown> | null;
   const game = row.games as Record<string, unknown>;
   const images = (row.post_images as Array<Record<string, unknown>> | null) || [];
+  const attachments = (row.post_attachments as Array<Record<string, unknown>> | null) || [];
   const likes = (row.likes as Array<unknown> | null) || [];
   const comments = (row.comments as Array<unknown> | null) || [];
   return {
@@ -28,6 +29,14 @@ function mapPost(row: Record<string, unknown>, currentUserId?: string): FeedPost
       icon: String(game.icon || "G"), color: String(game.color || "#8b5cf6")
     },
     images: images.sort((a, b) => Number(a.position) - Number(b.position)).map((image) => String(image.public_url)),
+    attachments: attachments
+      .sort((a, b) => Number(a.position) - Number(b.position))
+      .map((attachment) => ({
+        id: String(attachment.id),
+        fileName: String(attachment.file_name),
+        contentType: String(attachment.content_type),
+        sizeBytes: Number(attachment.size_bytes)
+      })),
     likeCount: likes.length,
     commentCount: comments.length,
     liked: Boolean(currentUserId && likes.some((like) => (like as { user_id?: string }).user_id === currentUserId)),
@@ -90,7 +99,7 @@ export async function getFeedPage(options: FeedOptions) {
   let query = supabase
     .from("posts")
     .select(
-      "*, profiles!posts_author_id_fkey(username, avatar_url), games!posts_game_id_fkey(*), post_images(*), likes(user_id), comments(id)"
+      "*, profiles!posts_author_id_fkey(username, avatar_url), games!posts_game_id_fkey(*), post_images(*), post_attachments(*), likes(user_id), comments(id)"
     )
     .eq("is_published", true)
     .order("created_at", { ascending: false })
