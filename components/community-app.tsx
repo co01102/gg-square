@@ -553,7 +553,7 @@ function ComposerModal({ games, demo, onClose, onCreated }: { games: Game[]; dem
           <input ref={fileRef} hidden type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => chooseImages(e.target.files)} />
           <input ref={attachmentRef} hidden type="file" multiple onChange={(e) => chooseAttachments(e.target.files)} />
           {formError && <p className="form-error">{formError}</p>}
-          <div className="composer-footer"><div className="composer-tools"><button type="button" className="add-photo" onClick={() => fileRef.current?.click()}><ImagePlus size={18} /> 사진 <small>{previews.length}/4</small></button><button type="button" className="add-file" onClick={() => attachmentRef.current?.click()}><Paperclip size={18} /> 파일 <small>{attachmentFiles.length}/3</small></button></div><button className="button primary" disabled={pending}>{pending ? "업로드 중..." : "게시하기"}</button></div>
+          <div className="composer-footer"><div className="composer-tools"><button type="button" className="add-photo" onClick={() => fileRef.current?.click()}><ImagePlus size={18} /> 사진 추가 <small>{previews.length}/4</small></button><button type="button" className="add-file" onClick={() => attachmentRef.current?.click()}><Paperclip size={18} /> 파일 첨부 <small>{attachmentFiles.length}/3</small></button></div><button className="button primary" disabled={pending}>{pending ? "업로드 중..." : "게시하기"}</button></div>
         </form>
       </div>
     </div>
